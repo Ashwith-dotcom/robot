@@ -1,0 +1,5 @@
+real time locations of robot - gps module lat , long
+recieved delivery from raspi after door closed
+servo motors for door
+location of owner , security - move motors
+camera face verification -success message on owner app , lidar 
