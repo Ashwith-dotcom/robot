@@ -24,96 +24,119 @@ class OTPVerifier:
             self.otp_window.destroy()
         
         self.otp_window = tk.Tk()
-        self.otp_window.title("Robot Door Control")
-        self.otp_window.geometry("800x480")
-        self.otp_window.configure(bg='#f0f2f5')
+        window_width = 800
+        window_height = 450
+        screen_width = self.otp_window.winfo_screenwidth()
+        self.otp_window.overrideredirect(True)
+        screen_height = self.otp_window.winfo_screenheight()
+        center_x = int(screen_width/2 - window_width/2)
+        center_y = int(screen_height/2 - window_height/2)
+        self.otp_window.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
+        self.otp_window.configure(bg='#000000')
         
         # Configure styles
-        style = ttk.Style()
-        style.configure("NumPad.TButton", 
-                       font=('Helvetica', 24, 'bold'),
-                       padding=20,
-                       width=4)
-        style.configure("Action.TButton",
-                       font=('Helvetica', 20),
-                       padding=15,
-                       width=8)
-        style.configure("Display.TLabel",
-                       font=('Helvetica', 36),
-                       background='#f0f2f5')
-        style.configure("Title.TLabel",
-                       font=('Helvetica', 28, 'bold'),
-                       background='#f0f2f5')
-        style.configure("Error.TLabel",
-                       font=('Helvetica', 16),
-                       foreground='#dc2626',
-                       background='#f0f2f5')
-
-        # Main container
-        main_frame = ttk.Frame(self.otp_window, padding="20", style="Main.TFrame")
-        main_frame.place(relx=0.5, rely=0.5, anchor="center")
-
-        # Title
-        ttk.Label(main_frame, 
-                 text="Enter Security Code", 
-                 style="Title.TLabel").grid(row=0, column=0, columnspan=3, pady=(0, 20))
-
-        # OTP display
-        self.otp_var = tk.StringVar()
-        self.otp_display = ttk.Label(main_frame, 
-                                   textvariable=self.otp_var,
-                                   style="Display.TLabel",
-                                   width=8)
-        self.otp_display.grid(row=1, column=0, columnspan=3, pady=(0, 30))
-
-        # Error message label
-        self.error_label = ttk.Label(main_frame, text="", style="Error.TLabel")
-        self.error_label.grid(row=2, column=0, columnspan=3)
-
-        # Number pad frame
-        numpad_frame = ttk.Frame(main_frame)
-        numpad_frame.grid(row=3, column=0, columnspan=3, pady=10)
-
-        # Create number pad
+        main_frame = tk.Frame(self.otp_window, bg='#000000', padx=40, pady=40)
+        main_frame.pack(expand=True, fill='both')
+        
+        # PIN display
+        self.pin = ""
+        self.pin_var = tk.StringVar()
+        self.error_label= ""
+        
+        # Create and configure display frame
+        display_frame = tk.Frame(main_frame, bg='#000000')
+        display_frame.pack(fill='x', pady=(0, 20))
+        
+        # PIN entry display - make it wider and more prominent
+        self.pin_entry = tk.Entry(
+            display_frame,
+            textvariable=self.pin_var,
+            show='?',
+            font=('Arial', 32),
+            bg='white',
+            relief='flat',
+            justify='center'
+        )
+        self.pin_entry.pack(fill='x', ipady=15)
+        
+        # Create keypad frame
+        keypad_frame = tk.Frame(main_frame, bg='#000000')
+        keypad_frame.pack(expand=True, fill='both')
+        
+        # Configure grid with more spacing
+        for i in range(4):
+            keypad_frame.grid_rowconfigure(i, weight=1)
+        for i in range(3):
+            keypad_frame.grid_columnconfigure(i, weight=1)
+        
+        # Create number buttons with updated styling
         numbers = [
             ['1', '2', '3'],
             ['4', '5', '6'],
             ['7', '8', '9'],
-            ['C', '0', '?']
+            ['X', '0', '>']
         ]
-
+        
         for i, row in enumerate(numbers):
             for j, num in enumerate(row):
-                btn = ttk.Button(numpad_frame,
-                               text=num,
-                               style="NumPad.TButton",
-                               command=lambda x=num: self.handle_button(x))
-                btn.grid(row=i, column=j, padx=5, pady=5)
-
-        # Verify button
-        verify_btn = ttk.Button(main_frame,
-                              text="Verify",
-                              style="Action.TButton",
-                              command=self.verify_otp)
-        verify_btn.grid(row=4, column=0, columnspan=3, pady=(20, 0))
+                # Common button properties with enhanced styling
+                button_props = {
+                    'font': ('Arial', 36, 'bold'),
+                    'bg': '#000000',
+                    'activebackground': '#333333',
+                    'activeforeground': 'white',
+                    'relief': 'flat',
+                    'borderwidth': 0,
+                    'width': 4,
+                    'height': 1,
+                    'text': num,
+                    'cursor': 'hand2'  # Hand cursor on hover
+                }
+                
+                if num == 'X':
+                    button_props['fg'] = '#ff0000'  # Bright red
+                    button_props['command'] = self.clear
+                elif num == '>':
+                    button_props['fg'] = '#00ff00'  # Bright green
+                    button_props['command'] = self.verify_otp
+                else:
+                    button_props['fg'] = 'white'
+                    button_props['command'] = lambda n=num: self.handle_button(n)
+                
+                btn = tk.Button(keypad_frame, **button_props)
+                
+                # Add hover effect
+                btn.bind('<Enter>', lambda e, b=btn: b.configure(bg='#333333'))
+                btn.bind('<Leave>', lambda e, b=btn: b.configure(bg='#000000'))
+                
+                # Grid with more spacing
+                btn.grid(row=i, column=j, padx=10, pady=10, sticky='nsew')
+                
+                # Add separator lines
+                if j < 2:  # Vertical lines
+                    separator = tk.Frame(keypad_frame, width=1, bg='#ffffff')
+                    separator.grid(row=i, column=j, sticky='nse', padx=(0, 0), pady=10)
+                if i < 3:  # Horizontal lines
+                    separator = tk.Frame(keypad_frame, height=1, bg='#ffffff')
+                    separator.grid(row=i, column=j, sticky='sew', padx=10, pady=(0, 0))
+                    
+        
 
         self.otp_window.mainloop()
 
-    def handle_button(self, value):
-        current = self.otp_var.get()
-        
-        if value == '?':  # Backspace
-            self.otp_var.set(current[:-1])
-        elif value == 'C':  # Clear
-            self.otp_var.set('')
-        elif len(current) < 6:  # Limit to 6 digits
-            self.otp_var.set(current + value)
+    def handle_button(self, number):
+        if len(self.pin) < 4:
+            self.pin += number
+            self.pin_var.set(self.pin)
         
         # Clear any error message
         self.error_label.config(text="")
+    def clear(self):
+        self.pin = ""
+        self.pin_var.set("")
 
     def verify_otp(self):
-        entered_otp = self.otp_var.get()
+        entered_otp = self.pin_var.get()
         if entered_otp == self.current_otp:
             self.otp_window.destroy()
             self.otp_window = None
@@ -126,7 +149,7 @@ class OTPVerifier:
             self.current_delivery_id = None
         else:
             self.error_label.config(text="Invalid security code. Please try again.")
-            self.otp_var.set('')  # Clear the input
+            self.pin_var.set('')  # Clear the input
 
     def notify_server_otp_verified(self):
         if not self.current_delivery_id:
